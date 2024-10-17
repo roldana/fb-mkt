@@ -1,0 +1,16 @@
+{
+  "name": "fb-market",
+  "version": "1.0.0",
+  "description": "An Electron app to browse Facebook Marketplace",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^33.0.1"
+  }
+}
