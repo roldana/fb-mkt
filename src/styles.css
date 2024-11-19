@@ -1,0 +1,76 @@
+/* App container styling */
+#app-container {
+    display: flex;
+    min-height: 100vh;
+  }
+  
+  /* Sidebar styling */
+  #sidebar {
+    flex: 0 0 250px; /* Fixed width */
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    background-color: #f0f2f5;
+  }
+  
+  /* Content styling */
+  #content {
+    flex: 1;
+    padding: 0;
+    display: flex;
+  }
+  
+  /* Webview styling */
+  #webview {
+    flex: 1;
+    border: none;
+  }
+  
+  /* Button styling */
+  .fb-button {
+    display: flex;
+    align-items: center;
+    background-color: #e4e6eb;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    text-align: left;
+    width: 100%;
+  }
+  
+  .fb-button:hover {
+    background-color: #d8dadf;
+  }
+  
+  .fb-button:active {
+    background-color: #cdd0d5;
+  }
+  
+  .fb-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #1877f2;
+  }
+  
+  /* Icon styling */
+  .fb-button-icon {
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .fb-button-icon i {
+    font-size: 20px;
+    color: #050505;
+  }
+  
+  /* Text styling */
+  .fb-button-text {
+    font-size: 15px;
+    color: #050505;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  

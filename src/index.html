@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Your App Title</title>
+  <!-- Include Font Awesome for icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  />
+  <!-- Include your CSS styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app-container">
+    <div id="sidebar">
+      <!-- Your buttons with icons -->
+    </div>
+    <div id="content">
+      <webview
+        id="webview"
+        src="https://www.facebook.com/marketplace/you/dashboard"
+        preload="webviewPreload.js"
+      ></webview>
+    </div>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
