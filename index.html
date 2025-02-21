@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+    <style>
+      body, html {
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+      }
+      .top-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: #4267B2;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        font-size: 18px;
+        font-weight: bold;
+        z-index: 10;
+      }
+      .left-bar {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        width: 250px;
+        bottom: 0;
+        background: #f0f2f5;
+        border-right: 1px solid #ccc;
+        padding: 10px;
+        overflow-y: auto;
+        z-index: 10;
+      }
+      .left-bar ul {
+        list-style: none;
+        padding: 0;
+      }
+      .left-bar li {
+        margin: 10px 0;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .left-bar .saved-products {
+        margin-top: 20px;
+        border-top: 1px solid #ccc;
+        padding-top: 10px;
+      }
+      .left-bar .saved-products h3 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        text-transform: uppercase;
+        color: #555;
+      }
+      .left-bar .saved-products ul {
+        list-style: none;
+        padding: 0;
+      }
+      .left-bar .saved-products li {
+        margin-bottom: 10px;
+        font-size: 13px;
+      }
+      .left-bar .saved-products li .product-title {
+        font-weight: bold;
+        display: block;
+      }
+
+      .content {
+        margin-top: 60px;
+        margin-left: 250px;
+        width: calc(100% - 250px);
+        height: calc(100% - 60px);
+        background: #fff;
+        position: relative;
+        overflow: hidden;
+      }
+      .url-display {
+        height: 6px;
+        background: #e0e0e0;
+        padding: 5px 5px;
+        font-size: 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      /* The BrowserView will appear below the .url-display area */
+      .browser-content-area {
+        position: absolute;
+        top: 30px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+    </style>
+</head>
+<body>
+  <div class="top-bar">Facebook Marketplace (Custom Layout)</div>
+  <div class="left-bar">
+    <ul id="nav-list">
+      <li data-url="/marketplace/you/dashboard/">home</li>
+      <li data-url="/marketplace">browse</li>
+      <li data-url="/marketplace/profile/PROFILE_NUMBER/">profile</li>
+      <li data-url="/marketplace/inbox">inbox</li>
+      <li data-url="/marketplace/you/saved">saved</li>
+      <li data-url="/marketplace/you/alerts">alerts</li>
+      <li data-url="/marketplace/you">recent activity</li>
+      <li data-url="/marketplace/you/selling">listings</li>
+      <li data-url="/marketplace/create/item">new item</li>
+      <li data-url="/marketplace/you/insights">insights</li>
+    </ul>
+    <div class="saved-products">
+      <h3>Saved Products</h3>
+      <ul class="products-list"></ul>
+    </div>
+  </div>
+  <div class="content">
+    <div class="url-display"></div>
+    <div class="browser-content-area"></div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    // Attach event listeners to all nav items
+    const navList = document.getElementById('nav-list');
+    navList.addEventListener('click', (e) => {
+      if (e.target.tagName === 'LI') {
+        const url = e.target.getAttribute('data-url');
+        if (url) {
+          ipcRenderer.send('navigate', url);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+<script>
+  // No require calls directly, since nodeIntegration is false.
+  // Instead, use the exposed API:
+  document.getElementById('nav-list').addEventListener('click', (e) => {
+    if (e.target.tagName === 'LI') {
+      const url = e.target.getAttribute('data-url');
+      if (url && window.electronAPI) {
+        window.electronAPI.navigate(url);
+      }
+    }
+  });
+</script>
