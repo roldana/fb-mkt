@@ -1,156 +1,260 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0" />
-    <style>
-      body, html {
-        margin: 0;
-        padding: 0;
-        font-family: sans-serif;
-        height: 100%;
-        width: 100%;
-        overflow: hidden;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Facebook Marketplace - Modern UI</title>
+  <style>
+    /* Reset and global settings */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background-color: #f5f6f7;
+      color: #333;
+      overflow: hidden;
+    }
+    
+    /* Top Navigation Bar */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #4267B2;
+      padding: 10px 20px;
+      color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+    }
+    .top-nav .logo {
+      font-size: 22px;
+      font-weight: bold;
+    }
+    .top-nav .search {
+      flex: 1;
+      margin: 0 20px;
+    }
+    .top-nav .search input {
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 20px;
+      outline: none;
+      font-size: 14px;
+    }
+    .top-nav .user-actions {
+      display: flex;
+      align-items: center;
+    }
+    .top-nav .user-actions button {
+      background: transparent;
+      border: none;
+      color: #fff;
+      margin-left: 15px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    
+    /* Sidebar Navigation */
+    .sidebar {
+      position: fixed;
+      top: 60px;
+      bottom: 0;
+      left: 0;
+      width: 280px;
+      background-color: #fff;
+      border-right: 1px solid #ddd;
+      padding: 20px;
+      overflow-y: auto;
+      transition: all 0.3s ease;
+      z-index: 90;
+    }
+    .sidebar h2 {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #4267B2;
+    }
+    .sidebar nav ul {
+      list-style: none;
+    }
+    .sidebar nav li {
+      margin-bottom: 15px;
+    }
+    .sidebar nav li a {
+      text-decoration: none;
+      font-size: 16px;
+      color: #333;
+      display: block;
+      transition: color 0.2s ease;
+    }
+    .sidebar nav li a:hover {
+      color: #4267B2;
+    }
+    .saved-products {
+      margin-top: 30px;
+      border-top: 1px solid #ddd;
+      padding-top: 20px;
+    }
+    .saved-products h2 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #555;
+      text-transform: uppercase;
+    }
+    .saved-products ul {
+      list-style: none;
+    }
+    .saved-products ul li {
+      margin-bottom: 10px;
+    }
+    .saved-products ul li a {
+      font-size: 14px;
+      color: #333;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .saved-products ul li a:hover {
+      color: #4267B2;
+    }
+    
+    /* Main Content Area */
+    .content {
+      margin-top: 60px;
+      margin-left: 280px;
+      padding: 20px;
+      height: calc(100vh - 60px);
+      overflow-y: auto;
+    }
+    
+    /* Marketplace Grid */
+    .marketplace-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 2S0px;
+    }
+    .marketplace-item {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: box-shadow 0.3s ease;
+      cursor: pointer;
+    }
+    .marketplace-item:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .marketplace-item img {
+      width: 100%;
+      display: block;
+    }
+    .marketplace-item .item-details {
+      padding: 10px;
+    }
+    .marketplace-item .item-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .marketplace-item .item-price {
+      font-size: 14px;
+      color: #888;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 240px;
       }
-      .top-bar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 60px;
-        background: #4267B2;
-        color: #fff;
-        display: flex;
-        align-items: center;
-        padding: 0 10px;
-        font-size: 18px;
-        font-weight: bold;
-        z-index: 10;
-      }
-      .left-bar {
-        position: fixed;
-        top: 60px;
-        left: 0;
-        width: 250px;
-        bottom: 0;
-        background: #f0f2f5;
-        border-right: 1px solid #ccc;
-        padding: 10px;
-        overflow-y: auto;
-        z-index: 10;
-      }
-      .left-bar ul {
-        list-style: none;
-        padding: 0;
-      }
-      .left-bar li {
-        margin: 10px 0;
-        cursor: pointer;
-        font-weight: bold;
-      }
-      .left-bar .saved-products {
-        margin-top: 20px;
-        border-top: 1px solid #ccc;
-        padding-top: 10px;
-      }
-      .left-bar .saved-products h3 {
-        margin: 0 0 10px;
-        font-size: 14px;
-        text-transform: uppercase;
-        color: #555;
-      }
-      .left-bar .saved-products ul {
-        list-style: none;
-        padding: 0;
-      }
-      .left-bar .saved-products li {
-        margin-bottom: 10px;
-        font-size: 13px;
-      }
-      .left-bar .saved-products li .product-title {
-        font-weight: bold;
-        display: block;
-      }
-
       .content {
-        margin-top: 60px;
-        margin-left: 250px;
-        width: calc(100% - 250px);
-        height: calc(100% - 60px);
-        background: #fff;
-        position: relative;
-        overflow: hidden;
+        margin-left: 240px;
       }
-      .url-display {
-        height: 6px;
-        background: #e0e0e0;
-        padding: 5px 5px;
-        font-size: 10px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+      .top-nav .search {
+        margin: 0 10px;
       }
-      /* The BrowserView will appear below the .url-display area */
-      .browser-content-area {
-        position: absolute;
-        top: 30px;
-        left: 0;
-        right: 0;
-        bottom: 0;
+    }
+    @media (max-width: 480px) {
+      .top-nav {
+        flex-direction: column;
+        align-items: flex-start;
       }
-    </style>
+      .top-nav .search {
+        width: 100%;
+        margin: 10px 0;
+      }
+      .sidebar {
+        display: none;
+      }
+      .content {
+        margin-left: 0;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="top-bar">Facebook Marketplace (Custom Layout)</div>
-  <div class="left-bar">
-    <ul id="nav-list">
-      <li data-url="/marketplace/you/dashboard/">home</li>
-      <li data-url="/marketplace">browse</li>
-      <li data-url="/marketplace/profile/PROFILE_NUMBER/">profile</li>
-      <li data-url="/marketplace/inbox">inbox</li>
-      <li data-url="/marketplace/you/saved">saved</li>
-      <li data-url="/marketplace/you/alerts">alerts</li>
-      <li data-url="/marketplace/you">recent activity</li>
-      <li data-url="/marketplace/you/selling">listings</li>
-      <li data-url="/marketplace/create/item">new item</li>
-      <li data-url="/marketplace/you/insights">insights</li>
-    </ul>
-    <div class="saved-products">
-      <h3>Saved Products</h3>
-      <ul class="products-list"></ul>
+  <!-- Top Navigation Bar -->
+  <header class="top-nav">
+    <div class="logo">Marketplace</div>
+    <div class="search">
+      <input type="text" placeholder="Search products..." />
     </div>
-  </div>
-  <div class="content">
-    <div class="url-display"></div>
-    <div class="browser-content-area"></div>
-  </div>
+    <div class="user-actions">
+      <button title="Notifications">&#128276;</button>
+      <button title="Messages">&#9993;</button>
+      <button title="Profile">&#128100;</button>
+    </div>
+  </header>
+  
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <h2>Navigation</h2>
+    <nav>
+      <ul>
+        <li><a href="/marketplace/you/dashboard/">Home</a></li>
+        <li><a href="/marketplace">Browse</a></li>
+        <li><a href="/marketplace/profile/PROFILE_NUMBER/">Profile</a></li>
+        <li><a href="/marketplace/inbox">Inbox</a></li>
+        <li><a href="/marketplace/you/saved">Saved</a></li>
+        <li><a href="/marketplace/you/alerts">Alerts</a></li>
+        <li><a href="/marketplace/you">Recent Activity</a></li>
+        <li><a href="/marketplace/you/selling">Listings</a></li>
+        <li><a href="/marketplace/create/item">New Item</a></li>
+        <li><a href="/marketplace/you/insights">Insights</a></li>
+      </ul>
+    </nav>
+    <div class="saved-products">
+      <h2>Saved Products</h2>
+      <ul>
+        <li><a href="#">Product 1</a></li>
+        <li><a href="#">Product 2</a></li>
+        <li><a href="#">Product 3</a></li>
+      </ul>
+    </div>
+  </aside>
+  
+  <!-- Main Content Area -->
+  <main class="content">
 
+  </main>
+  
+  <!-- JavaScript for Navigation Handling -->
   <script>
-    const { ipcRenderer } = require('electron');
-
-    // Attach event listeners to all nav items
-    const navList = document.getElementById('nav-list');
-    navList.addEventListener('click', (e) => {
-      if (e.target.tagName === 'LI') {
-        const url = e.target.getAttribute('data-url');
-        if (url) {
-          ipcRenderer.send('navigate', url);
+    // Using modern event delegation for sidebar navigation clicks
+    document.querySelector('.sidebar nav').addEventListener('click', function(e) {
+      if(e.target.tagName.toLowerCase() === 'a'){
+        e.preventDefault();
+        // If using Electron, use the exposed API
+        if(window.electronAPI && typeof window.electronAPI.navigate === 'function') {
+          window.electronAPI.navigate(e.target.getAttribute('href'));
         }
       }
     });
   </script>
 </body>
 </html>
-<script>
-  // No require calls directly, since nodeIntegration is false.
-  // Instead, use the exposed API:
-  document.getElementById('nav-list').addEventListener('click', (e) => {
-    if (e.target.tagName === 'LI') {
-      const url = e.target.getAttribute('data-url');
-      if (url && window.electronAPI) {
-        window.electronAPI.navigate(url);
-      }
-    }
-  });
-</script>

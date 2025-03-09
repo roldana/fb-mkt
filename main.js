@@ -40,9 +40,10 @@ function createWindow() {
   mainWindow.setBrowserView(view);
 
   // Layout constants
-  const topBarHeight = 60;
+  const topBarHeight = 52;
   const leftBarWidth = 250;
-  const urlBarHeight = 30; // space for URL display inside the content area
+  const urlBarHeight = 0; // space for URL display inside the content area
+  const bottomOffset = 36; // space for bottom bar inside the content area
 
   function resizeView() {
     const [currentWidth, currentHeight] = mainWindow.getSize();
@@ -50,7 +51,7 @@ function createWindow() {
       x: leftBarWidth,
       y: topBarHeight + urlBarHeight,
       width: currentWidth - leftBarWidth,
-      height: currentHeight - topBarHeight - urlBarHeight
+      height: currentHeight - topBarHeight - urlBarHeight - bottomOffset
     });
   }
 
