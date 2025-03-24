@@ -228,6 +228,8 @@
         <li><a href="/marketplace/you/insights">Insights</a></li>
       </ul>
     </nav>
+    <button id="copyBtn">Copy URL</button>
+    <span class="url-display">Loading URL...</span>
     <div class="saved-products">
       <h2>Saved Products</h2>
       <ul>
@@ -255,8 +257,6 @@
         }
       }
     });
-  </script>
-  <script>
     // Event listener for the Copy URL button
     document.getElementById("copyBtn").addEventListener("click", function() {
       const urlText = document.querySelector(".url-display").innerText;
