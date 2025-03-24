@@ -256,5 +256,31 @@
       }
     });
   </script>
+  <script>
+    // Event listener for the Copy URL button
+    document.getElementById("copyBtn").addEventListener("click", function() {
+      const urlText = document.querySelector(".url-display").innerText;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(urlText).then(() => {
+          alert("URL copied to clipboard!");
+        }).catch(err => {
+          console.error("Failed to copy URL: ", err);
+        });
+      } else {
+        // Fallback for browsers without navigator.clipboard
+        const textArea = document.createElement("textarea");
+        textArea.value = urlText;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand("copy");
+          alert("URL copied to clipboard!");
+        } catch (err) {
+          console.error("Fallback: Unable to copy", err);
+        }
+        document.body.removeChild(textArea);
+      }
+    });
+  </script>
 </body>
 </html>
