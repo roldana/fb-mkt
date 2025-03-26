@@ -4,6 +4,12 @@ const path = require('path');
 // Base URL for Facebook
 const BASE_URL = "https://www.facebook.com";
 
+const SEARCH_URL = "https://www.facebook.com/marketplace/search/?query=";
+const SEARCH_INPUT_SELECTOR = 'input[placeholder="Search Marketplace"]';  
+const SEARCH_BUTTON_SELECTOR = 'button[type="submit"]';
+const SEARCH_RESULTS_SELECTOR = '.searchResults';
+const SEARCH_ITEM_SELECTOR = '.searchResult';
+
 // Classes used to extract product information from the loaded page
 const PRODUCT_ITEM_CLASS = 'productItem';    // Placeholder class for product items
 const PRODUCT_TITLE_CLASS = 'productTitle';  // Placeholder class for product title
@@ -74,6 +80,7 @@ function createWindow() {
   // Update URL display whenever navigation happens
   const updateURLDisplay = () => {
     const currentURL = view.webContents.getURL();
+    console.log("Navigated to:", currentURL); // Print to terminal
     mainWindow.webContents.executeJavaScript(`
       document.querySelector('.url-display').innerText = ${JSON.stringify(currentURL)};
     `);
