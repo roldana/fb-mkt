@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Grab elements
+  // Grab main elements
   const sidebar = document.getElementById("sidebar");
   const toggleBtn = document.getElementById("toggle-btn");
   const webview = document.getElementById("fb-view");
@@ -35,16 +35,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // URL Copy functionality (assumes one copy button exists).
-  const copyUrlBtn = document.getElementById("copyUrlBtn");
+  // Current URL display: update the current URL when the webview navigates.
   const currentUrlElement = document.getElementById("current-url");
-  
   const updateCurrentUrl = (event) => {
     if (currentUrlElement) {
       currentUrlElement.innerText = event.url || webview.getURL();
     }
   };
-
   // attach event listeners to the webview for navigation events, and update the current url display
   if (webview) {
     webview.addEventListener("did-navigate", updateCurrentUrl);
@@ -58,7 +55,9 @@ document.addEventListener("DOMContentLoaded", () => {
    } else {
       console.error("Webview element not found or does not support navigation events.");  
     }
-
+  
+  // Handle copy URL button click.
+  const copyUrlBtn = document.getElementById("copyUrlBtn");
   if (copyUrlBtn) {
     copyUrlBtn.addEventListener("click", () => {
       const urlText = currentUrlElement ? currentUrlElement.innerText : "";
@@ -80,6 +79,23 @@ document.addEventListener("DOMContentLoaded", () => {
   } else {
     console.error("Copy URL element not found.");
   };
+
+  // Handle search input focus when the sidebar is collapsed.
+  const searchInput = sidebar.getElementById("searchInput");
+  if (searchInput) {
+    searchInput.addEventListener("focus", () => {
+      if (sidebar.classList.contains("collapsed")) {
+        sidebar.classList.remove("collapsed");
+        // Notify the main process to update the sidebar state.
+        if (
+          window.electronAPI &&
+          typeof window.electronAPI.toggleSidebar === "function"
+        ) {
+          window.electronAPI.toggleSidebar(false);
+        }
+      }
+    });
+  }
 
   // Handle search execution.
   document.getElementById("executeSearch").addEventListener("click", () => {
