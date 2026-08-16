@@ -22,6 +22,13 @@ async function isLoggedIn() {
   return cookies.length > 0;
 }
 
+// GTK Fix for Linux ---
+if (process.platform === 'linux') {
+  // This command line switch forces Electron to use GTK 3, resolving the 
+  // "GTK 2/3 and GTK 4 in the same process is not supported" error.
+  app.commandLine.appendSwitch('gtk-version', '3');
+}
+
 function createWindow() {
   console.log('[main] createWindow() running');
   if (process.platform === 'win32') {
@@ -49,7 +56,7 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
   // open Dev tools in new window
-  mainWindow.webContents.openDevTools({ mode: 'detach' });
+  // mainWindow.webContents.openDevTools({ mode: 'detach' });
 
   // enable notification permission
   mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
@@ -126,3 +133,4 @@ app.on('activate', () => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+// 
