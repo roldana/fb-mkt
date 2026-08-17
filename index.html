@@ -8,58 +8,159 @@
 </head>
 <body>
   <div id="app-container">
-    <!-- Sidebar Navigation -->
-    <div id="sidebar">
-      <h2>Marketplace</h2>
-      <nav>
-        <ul>
-          <li><a href="/marketplace/you/dashboard/">Home</a></li>
-          <li><a href="/marketplace">Browse</a></li>
-          <li><a href="/marketplace/create/item">New Item</a></li>
-          <!-- <li><a href="/marketplace/profile/PROFILE_NUMBER/">Profile</a></li> -->
-          <li><a href="/marketplace/inbox">Inbox</a></li>
-          <li><a href="/marketplace/you/saved">Saved</a></li>
-          <li><a href="/marketplace/you/alerts">Alerts</a></li>
-          <li><a href="/marketplace/you">Recent Activity</a></li>
-          <li><a href="/marketplace/you/selling">Listings</a></li>
-          <li><a href="/marketplace/you/insights">Insights</a></li>
-        </ul>
-        </nav>
-        <div class="search-container">
-          <input type="text" id="searchInput" placeholder="Enter search term..." />
-          <button id="executeSearch">Search</button>
-          <button id="saveSearch">Save Search</button>
+    <aside id="sidebar" aria-label="Marketplace tools">
+      <header class="sidebar-brand">
+        <img src="assets/icon.png" alt="" class="sidebar-brand__icon" />
+        <div class="sidebar-brand__copy">
+          <span class="sidebar-brand__title">Marketplace Pro</span>
+          <span class="sidebar-brand__subtitle">Your browsing workspace</span>
         </div>
-      <div class="saved">
-        <h2>Saved Products</h2>
-        <ul id="savedProductsList">
-          <!-- Saved Products -->
-        </ul>
-      </div>
-      <div class="saved saved-searches">
-        <h2>Saved Searches</h2>
-        <ul id="savedSearchList">
-          <!-- Saved Searches -->
-        </ul>
-      </div>
-      <!-- Current URL Display at Sidebar Bottom -->
-      <div class="current-url-container">
-        <span>Current URL:</span>
-        <span id="current-url"></span>
-        <button id="copyUrlBtn">Copy URL</button>
-      </div>
-    </div>
-  <!-- Main Content Area -->
-    <div id="main-content">
-      <button id="toggle-btn" aria-label="Toggle Sidebar">☰</button>
-        <webview id="fb-view"
-        src="https://www.facebook.com/marketplace/you/dashboard/"
-        user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
-        ></webview>
-    </div>
-  </div>
-<script src="renderer.js"></script>
-<script src="sidebar.js"></script>
+      </header>
 
+      <form id="searchForm" class="search-container" role="search">
+        <label for="searchInput">Search Marketplace</label>
+        <div class="search-row">
+          <input
+            type="search"
+            id="searchInput"
+            name="marketplace-search"
+            placeholder="What are you looking for?"
+            maxlength="200"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="executeSearch" class="button button--primary" type="submit">
+            Search
+          </button>
+        </div>
+        <button id="saveSearch" class="button button--secondary" type="button">
+          Save this search
+        </button>
+      </form>
+
+      <nav class="sidebar-nav" aria-label="Marketplace navigation">
+        <section class="nav-group" aria-labelledby="nav-discover-title">
+          <h2 id="nav-discover-title">Discover</h2>
+          <ul>
+            <li><a href="/marketplace/you/dashboard/" data-route="/marketplace/you/dashboard">Home</a></li>
+            <li><a href="/marketplace" data-route="/marketplace">Browse Marketplace</a></li>
+          </ul>
+        </section>
+
+        <section class="nav-group" aria-labelledby="nav-selling-title">
+          <h2 id="nav-selling-title">Selling</h2>
+          <ul>
+            <li><a href="/marketplace/create/item" data-route="/marketplace/create/item">Create a listing</a></li>
+            <li><a href="/marketplace/you/selling" data-route="/marketplace/you/selling">Your listings</a></li>
+            <li><a href="/marketplace/you/insights" data-route="/marketplace/you/insights">Insights</a></li>
+          </ul>
+        </section>
+
+        <section class="nav-group" aria-labelledby="nav-activity-title">
+          <h2 id="nav-activity-title">Activity</h2>
+          <ul>
+            <li><a href="/marketplace/inbox" data-route="/marketplace/inbox">Inbox</a></li>
+            <li><a href="/marketplace/you/saved" data-route="/marketplace/you/saved">Saved on Facebook</a></li>
+            <li><a href="/marketplace/you/alerts" data-route="/marketplace/you/alerts">Alerts</a></li>
+            <li><a href="/marketplace/you" data-route="/marketplace/you">Recent activity</a></li>
+          </ul>
+        </section>
+      </nav>
+
+      <section class="sidebar-section" aria-labelledby="saved-listings-title">
+        <div class="section-heading">
+          <h2 id="saved-listings-title">Saved listings</h2>
+        </div>
+        <p id="savedListingsEmpty" class="empty-state">
+          Save a listing from the toolbar to find it here.
+        </p>
+        <ul id="savedListingsList" class="saved-list" aria-label="Saved listings"></ul>
+      </section>
+
+      <section class="sidebar-section" aria-labelledby="saved-searches-title">
+        <div class="section-heading">
+          <h2 id="saved-searches-title">Saved searches</h2>
+        </div>
+        <p id="savedSearchesEmpty" class="empty-state">
+          Your reusable searches will appear here.
+        </p>
+        <ul id="savedSearchList" class="saved-list" aria-label="Saved searches"></ul>
+      </section>
+    </aside>
+
+    <main id="main-content">
+      <header id="browser-toolbar" class="browser-toolbar" role="toolbar" aria-label="Browser controls">
+        <button
+          id="toggle-btn"
+          class="toolbar-button"
+          type="button"
+          aria-label="Collapse sidebar"
+          aria-controls="sidebar"
+          aria-expanded="true"
+          title="Toggle sidebar"
+        >
+          <span aria-hidden="true">&#9776;</span>
+        </button>
+
+        <div class="toolbar-group" role="group" aria-label="Page navigation">
+          <button id="back-btn" class="toolbar-button" type="button" aria-label="Go back" title="Back" disabled>
+            <span aria-hidden="true">&#8592;</span>
+          </button>
+          <button id="forward-btn" class="toolbar-button" type="button" aria-label="Go forward" title="Forward" disabled>
+            <span aria-hidden="true">&#8594;</span>
+          </button>
+          <button id="reload-btn" class="toolbar-button" type="button" aria-label="Reload page" title="Reload">
+            <span aria-hidden="true">&#8635;</span>
+          </button>
+        </div>
+
+        <span id="loading-indicator" class="loading-indicator" role="progressbar" aria-label="Loading page"></span>
+
+        <div class="page-context">
+          <span id="page-title" class="page-title">Marketplace</span>
+          <input
+            id="current-url"
+            class="current-url"
+            type="text"
+            value="https://www.facebook.com/marketplace/you/dashboard/"
+            aria-label="Current page URL"
+            readonly
+          />
+        </div>
+
+        <div class="toolbar-group toolbar-actions" role="group" aria-label="Page actions">
+          <button id="copyUrlBtn" class="toolbar-button" type="button" aria-label="Copy current URL" title="Copy current URL">
+            <span aria-hidden="true">&#10697;</span>
+          </button>
+          <button id="saveListingBtn" class="toolbar-button toolbar-button--labeled" type="button" disabled>
+            <span aria-hidden="true">&#9734;</span>
+            <span class="button-label">Save listing</span>
+          </button>
+        </div>
+      </header>
+
+      <div id="error-banner" class="error-banner is-hidden" role="alert">
+        <span id="error-message">Marketplace could not be loaded.</span>
+        <button id="retry-btn" class="button button--danger" type="button">Try again</button>
+      </div>
+
+      <webview
+        id="fb-view"
+        src="https://www.facebook.com/marketplace/you/dashboard/"
+        aria-label="Facebook Marketplace"
+      ></webview>
+    </main>
+  </div>
+
+  <div
+    id="status-message"
+    class="status-message is-hidden"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  ></div>
+
+  <script src="renderer.js"></script>
+  <script src="sidebar.js"></script>
 </body>
 </html>
