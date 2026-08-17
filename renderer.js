@@ -1,53 +1,57 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const webview = document.getElementById("fb-view");
-    webview.addEventListener("did-finish-load", () => {
-        console.log("Webview finished loading:", webview.src);
-    });
+  const webview = document.getElementById("fb-view");
 
-    // REMOVE TOP FACEBOOK BANNER
-    if (webview) {
-        webview.addEventListener('dom-ready', () => {
-        webview.executeJavaScript(`
-        const banner = document.querySelector('div[role="banner"]');
-        if (banner) {
-            banner.remove();
-        }
-        "Banner removed";
-        `).then(result => {
-        console.log("executeJavaScript result:", result);
-        }).catch(err => {
-        console.error("Error executing script:", err);
-        });
-    });
-    } else {
-    console.error("webview element not found");
+  if (!webview) {
+    console.error("Webview element not found");
+    return;
+  }
+
+  const hiddenHeaderHeightRem = 1.8;
+  const marketplaceSidebarOffsetRem = hiddenHeaderHeightRem + 1.2;
+
+  const bannerRemovalScript = `
+    (() => {
+      const banner = document.querySelector('div[role="banner"]');
+      if (banner) {
+        banner.remove();
+      }
+      return Boolean(banner);
+    })();
+  `;
+
+  const marketplaceLayoutCss = `
+    html, body {
+      margin-top: -${hiddenHeaderHeightRem}rem !important;
+      height: calc(100% + ${hiddenHeaderHeightRem}rem) !important;
     }
 
-    // Hide missing top banner
-    webview.addEventListener('dom-ready', () => {
-    const hideHeightRem = 1.8;
-    
-    // Move the whole document body and webview sidebar upward so the first 100px are off-screen.
-    webview.insertCSS(`
-        html, body {
-            margin-top: -${hideHeightRem}rem !important;
-            height: calc(100% + ${hideHeightRem}rem) !important;
-        }
-
-        /* Move the sidebar up */
-        div[aria-label="Marketplace sidebar"] > div:first-of-type {
-            margin-top: -${hideHeightRem+1.2}rem !important;
-            height: calc(100% + ${hideHeightRem+1.2}rem) !important;
-        }
-        
-        `);
-
-
-});
-    // Check for permission and request if not granted
-    if (Notification.permission !== "granted") {
-    Notification.requestPermission().then(permission => {
-        console.log("Notification permission:", permission);
-    });
+    div[aria-label="Marketplace sidebar"] > div:first-of-type {
+      margin-top: -${marketplaceSidebarOffsetRem}rem !important;
+      height: calc(100% + ${marketplaceSidebarOffsetRem}rem) !important;
     }
+  `;
+
+  const safelyCustomize = (label, operation) => {
+    try {
+      return Promise.resolve(operation()).catch((error) => {
+        console.warn(`[renderer] ${label} failed:`, error);
+      });
+    } catch (error) {
+      console.warn(`[renderer] ${label} failed:`, error);
+      return Promise.resolve();
+    }
+  };
+
+  const customizeMarketplaceChrome = () => {
+    void Promise.all([
+      safelyCustomize("Facebook banner removal", () =>
+        webview.executeJavaScript(bannerRemovalScript)
+      ),
+      safelyCustomize("Marketplace layout adjustment", () =>
+        webview.insertCSS(marketplaceLayoutCss)
+      ),
+    ]);
+  };
+
+  webview.addEventListener("dom-ready", customizeMarketplaceChrome);
 });

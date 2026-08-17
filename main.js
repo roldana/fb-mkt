@@ -1,26 +1,59 @@
-const { app, BrowserWindow, ipcMain, clipboard, session} = require('electron');
+const { app, BrowserWindow, clipboard, ipcMain } = require('electron');
 const path = require('path');
+const { pathToFileURL } = require('url');
 
-// Base URL for Facebook
-const BASE_URL = "https://www.facebook.com";
-const LOGIN_URL = "/login";
-const DASHBOARD_URL = "/marketplace/you/dashboard";
+const COPY_URL_CHANNEL = 'copy-url';
+const MAX_COPY_URL_LENGTH = 4096;
+const INDEX_PATH = path.join(__dirname, 'index.html');
+const INDEX_URL = pathToFileURL(INDEX_PATH).toString();
 
-const SEARCH_URL = "https://www.facebook.com/marketplace/search/?query=";
-const SEARCH_INPUT_SELECTOR = 'input[placeholder="Search Marketplace"]';  
-const SEARCH_BUTTON_SELECTOR = 'button[type="submit"]';
-const SEARCH_RESULTS_SELECTOR = '.searchResults';
-const SEARCH_ITEM_SELECTOR = '.searchResult';
+function isFacebookHttpsUrl(value) {
+  if (
+    typeof value !== 'string' ||
+    value.length === 0 ||
+    value.length > MAX_COPY_URL_LENGTH
+  ) {
+    return false;
+  }
 
-let mainWindow;
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
 
-async function isLoggedIn() {
-  const cookies = await session.defaultSession.cookies.get({
-    name: 'c_user',
-    domain: 'facebook.com'
-  });
-  return cookies.length > 0;
+    return (
+      url.protocol === 'https:' &&
+      !url.username &&
+      !url.password &&
+      (hostname === 'facebook.com' || hostname.endsWith('.facebook.com'))
+    );
+  } catch {
+    return false;
+  }
 }
+
+function isTrustedLocalSender(event) {
+  const { sender, senderFrame } = event;
+
+  return Boolean(
+    senderFrame &&
+      senderFrame === sender.mainFrame &&
+      sender.getType() === 'window' &&
+      senderFrame.url === INDEX_URL
+  );
+}
+
+ipcMain.handle(COPY_URL_CHANNEL, (event, url) => {
+  if (!isTrustedLocalSender(event)) {
+    throw new Error('Clipboard request denied for an untrusted sender.');
+  }
+
+  if (!isFacebookHttpsUrl(url)) {
+    throw new TypeError('Only valid Facebook HTTPS URLs can be copied.');
+  }
+
+  clipboard.writeText(url);
+  return true;
+});
 
 // GTK Fix for Linux ---
 if (process.platform === 'linux') {
@@ -31,106 +64,90 @@ if (process.platform === 'linux') {
 
 function createWindow() {
   console.log('[main] createWindow() running');
+
   if (process.platform === 'win32') {
     app.setAppUserModelId('com.reactapp.fb-marketplace');
   }
 
-  let savedSearches = [];
-
-  mainWindow = new BrowserWindow({
+  const mainWindow = new BrowserWindow({
     width: 1300,
     height: 900,
+    minWidth: 900,
+    minHeight: 600,
+    backgroundColor: '#f0f2f5',
     autoHideMenuBar: true,
     icon: path.join(__dirname, 'assets', 'icon.png'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'), 
+      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      enableRemoteModule: false,
-      devTools: true,
+      sandbox: true,
+      devTools: !app.isPackaged,
       webviewTag: true
     }
   });
 
-  // Load the local HTML with the updated navigation bar
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  const electronSession = mainWindow.webContents.session;
 
-  // open Dev tools in new window
-  // mainWindow.webContents.openDevTools({ mode: 'detach' });
+  electronSession.setPermissionCheckHandler(
+    (_webContents, permission, requestingOrigin) =>
+      permission === 'notifications' &&
+      isFacebookHttpsUrl(requestingOrigin)
+  );
 
-  // enable notification permission
-  mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
-    if (permission === 'notifications') {
-      callback(true);
-    } else {
-      callback(false);
+  electronSession.setPermissionRequestHandler(
+    (webContents, permission, callback, details) => {
+      const allowed =
+        webContents.getType() === 'webview' &&
+        permission === 'notifications' &&
+        isFacebookHttpsUrl(details.requestingUrl);
+
+      callback(allowed);
+    }
+  );
+
+  mainWindow.webContents.on(
+    'will-attach-webview',
+    (event, webPreferences, params) => {
+      delete webPreferences.preload;
+      delete params.preload;
+      webPreferences.nodeIntegration = false;
+      webPreferences.contextIsolation = true;
+
+      if (!isFacebookHttpsUrl(params.src)) {
+        event.preventDefault();
+      }
+    }
+  );
+
+  mainWindow.webContents.on(
+    'did-attach-webview',
+    (_event, guestContents) => {
+      guestContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    }
+  );
+
+  mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+    const targetUrl = event.url || navigationUrl;
+    if (targetUrl !== INDEX_URL) {
+      event.preventDefault();
     }
   });
 
-  const initial_url = '';
-  
-  // IMPLEMENT THIS FUNCTIONALITY WITH WEBVIEW; IT WAS IMPLEMENTED WITH BROWSERVIEW
-  // isLoggedIn()
-  //   .then(loggedIn => {
-  //     console.log('checking if user is logged in')
-  //     view.webContents.loadURL(loggedIn ? BASE_URL + DASHBOARD_URL : BASE_URL + LOGIN_URL )
-  //   })
-  //   .catch(err => {
-  //     console.error('Cookie check failed:', err);
-  //     view.webContents.loadURL(BASE_URL+LOGIN_URL);
-  //   });
-
-  // Initial load
-  // view.webContents.loadURL(BASE_URL + DASHBOARD_URL);
-
-  // Update URL display whenever navigation happens
-  const updateURLDisplay = () => {
-    const currentURL = mainWindow.webContents.getURL();
-    console.log("Navigated to:", currentURL); // Print to terminal
-    mainWindow.webContents.executeJavaScript(`
-      document.getElementById('current-url').innerText = ${JSON.stringify(currentURL)};
-    `);
-  };
-
-  mainWindow.webContents.on('did-navigate', updateURLDisplay);
-  mainWindow.webContents.on('did-navigate-in-page', updateURLDisplay);
-
-  // IPC listener for navigation requests from the renderer
-  ipcMain.on('navigate', (event, relativePath) => {
-    console.log("Navigating to:", relativePath); // Print to terminal
-    const targetURL = BASE_URL + relativePath;
-    console.log("Target URL:", targetURL); // Print to terminal
-    mainWindow.webContents.loadURL(targetURL);
-  });
-
-  ipcMain.on('save-search', (event, query) => {
-    // Here you would insert the search term into your database.
-    // For this demo, we simply push it into the array.
-    savedSearches.push(query);
-    console.log("Saved search:", query);
-    event.reply('search-saved', savedSearches);
-  });
-  
-  ipcMain.on('get-saved-searches', (event) => {
-    event.reply('saved-searches', savedSearches);
-  });
-
-  ipcMain.on('copy-to-clipboard', (event, text) => {
-    // Use the clipboard module to copy text to the clipboard
-    clipboard.writeText(text);
-  });
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.loadFile(INDEX_PATH);
 }
 
-// When app is ready, create the window
 app.whenReady().then(createWindow);
 
-// On macOS, recreate a window when the dock icon is clicked and no other windows are open.
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });
 
-// Quit when all windows are closed, except on macOS
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });
-// 
