@@ -67,25 +67,49 @@
         </section>
       </nav>
 
-      <section class="sidebar-section" aria-labelledby="saved-listings-title">
-        <div class="section-heading">
-          <h2 id="saved-listings-title">Saved listings</h2>
+      <details class="sidebar-section sidebar-details" open>
+        <summary id="saved-listings-title">
+          <span>Saved listings</span>
+          <span id="savedListingsCount" class="count-badge" aria-hidden="true">0</span>
+        </summary>
+        <div class="sidebar-details__content">
+          <p id="savedListingsEmpty" class="empty-state">
+            Save a listing from the toolbar to find it here.
+          </p>
+          <ul id="savedListingsList" class="saved-list" aria-labelledby="saved-listings-title"></ul>
         </div>
-        <p id="savedListingsEmpty" class="empty-state">
-          Save a listing from the toolbar to find it here.
-        </p>
-        <ul id="savedListingsList" class="saved-list" aria-label="Saved listings"></ul>
-      </section>
+      </details>
 
-      <section class="sidebar-section" aria-labelledby="saved-searches-title">
-        <div class="section-heading">
-          <h2 id="saved-searches-title">Saved searches</h2>
+      <details class="sidebar-section sidebar-details">
+        <summary id="recent-listings-title">
+          <span>Recent listings</span>
+          <span id="recentListingsCount" class="count-badge" aria-hidden="true">0</span>
+        </summary>
+        <div class="sidebar-details__content">
+          <div class="section-actions">
+            <button id="clearRecentListings" class="text-button" type="button" disabled>
+              Clear history
+            </button>
+          </div>
+          <p id="recentListingsEmpty" class="empty-state">
+            Listings you view will appear here.
+          </p>
+          <ul id="recentListingsList" class="saved-list" aria-labelledby="recent-listings-title"></ul>
         </div>
-        <p id="savedSearchesEmpty" class="empty-state">
-          Your reusable searches will appear here.
-        </p>
-        <ul id="savedSearchList" class="saved-list" aria-label="Saved searches"></ul>
-      </section>
+      </details>
+
+      <details class="sidebar-section sidebar-details">
+        <summary id="saved-searches-title">
+          <span>Saved searches</span>
+          <span id="savedSearchesCount" class="count-badge" aria-hidden="true">0</span>
+        </summary>
+        <div class="sidebar-details__content">
+          <p id="savedSearchesEmpty" class="empty-state">
+            Your reusable searches will appear here.
+          </p>
+          <ul id="savedSearchList" class="saved-list" aria-labelledby="saved-searches-title"></ul>
+        </div>
+      </details>
     </aside>
 
     <main id="main-content">
@@ -129,6 +153,16 @@
         </div>
 
         <div class="toolbar-group toolbar-actions" role="group" aria-label="Page actions">
+          <button
+            id="theme-btn"
+            class="toolbar-button"
+            type="button"
+            aria-label="Switch to dark theme"
+            aria-pressed="false"
+            title="Switch to dark theme"
+          >
+            <span class="theme-icon" aria-hidden="true">&#9790;</span>
+          </button>
           <button id="copyUrlBtn" class="toolbar-button" type="button" aria-label="Copy current URL" title="Copy current URL">
             <span aria-hidden="true">&#10697;</span>
           </button>

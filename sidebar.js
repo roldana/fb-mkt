@@ -4,11 +4,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const FACEBOOK_ORIGIN = "https://www.facebook.com";
   const MAX_SEARCH_LENGTH = 200;
   const MAX_COPY_URL_LENGTH = 4096;
-  const LIMITS = { searches: 20, listings: 30 };
+  const LIMITS = { searches: 20, listings: 30, recentListings: 15 };
   const STORAGE_KEYS = {
     searches: "marketplacePro.savedSearches.v1",
     listings: "marketplacePro.savedListings.v1",
+    recentListings: "marketplacePro.recentListings.v1",
     collapsed: "marketplacePro.sidebarCollapsed.v1",
+    theme: "marketplacePro.theme.v1",
   };
   const byId = (id) => document.getElementById(id);
   const listen = (element, eventName, handler) => {
@@ -25,14 +27,24 @@ document.addEventListener("DOMContentLoaded", () => {
     saveSearch: byId("saveSearch"),
     savedSearches: byId("savedSearchList"),
     searchesEmpty: byId("savedSearchesEmpty"),
+    searchesCount: byId("savedSearchesCount"),
+    searchesSummary: byId("saved-searches-title"),
     savedListings: byId("savedListingsList"),
     listingsEmpty: byId("savedListingsEmpty"),
+    listingsCount: byId("savedListingsCount"),
+    listingsSummary: byId("saved-listings-title"),
+    recentListings: byId("recentListingsList"),
+    recentListingsEmpty: byId("recentListingsEmpty"),
+    recentListingsCount: byId("recentListingsCount"),
+    recentListingsSummary: byId("recent-listings-title"),
+    clearRecentListings: byId("clearRecentListings"),
     back: byId("back-btn"),
     forward: byId("forward-btn"),
     reload: byId("reload-btn"),
     loading: byId("loading-indicator"),
     pageTitle: byId("page-title"),
     currentUrl: byId("current-url"),
+    theme: byId("theme-btn"),
     copyUrl: byId("copyUrlBtn"),
     saveListing: byId("saveListingBtn"),
     errorBanner: byId("error-banner"),
@@ -45,13 +57,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const state = {
     searches: [],
     listings: [],
+    recentListings: [],
     title: "Marketplace",
     titleUrl: "",
+    recentTitle: "",
+    recentTitleUrl: "",
+    successfullyLoadedUrl: "",
+    successfulVisitAt: "",
     loading: Boolean(ui.webview),
     loadFailed: false,
     failedUrl: "",
     statusTimer: null,
   };
+  const systemDarkTheme =
+    typeof window.matchMedia === "function"
+      ? window.matchMedia("(prefers-color-scheme: dark)")
+      : null;
 
   function parseUrl(value, base) {
     try {
@@ -108,6 +129,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     return new URL(url.pathname.replace(/\/$/, ""), FACEBOOK_ORIGIN).toString();
+  }
+
+  function copyTargetUrl(value) {
+    return listingUrl(value) || (isFacebookHttpsUrl(value) ? value : "");
   }
 
   function currentUrl() {
@@ -184,6 +209,67 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function activeTheme() {
+    const preference = document.documentElement.dataset.theme;
+    if (preference === "light" || preference === "dark") {
+      return preference;
+    }
+    return systemDarkTheme && systemDarkTheme.matches ? "dark" : "light";
+  }
+
+  function updateThemeButton() {
+    if (!ui.theme) {
+      return;
+    }
+
+    const dark = activeTheme() === "dark";
+    const label = dark ? "Switch to light theme" : "Switch to dark theme";
+    const icon = ui.theme.querySelector(".theme-icon");
+    ui.theme.setAttribute("aria-label", label);
+    ui.theme.setAttribute("aria-pressed", String(dark));
+    ui.theme.title = label;
+    if (icon) {
+      icon.textContent = dark ? "☀" : "☾";
+    }
+  }
+
+  function initializeTheme() {
+    let preference = "";
+    try {
+      preference = localStorage.getItem(STORAGE_KEYS.theme) || "";
+    } catch {
+      // Use the operating-system preference when storage is unavailable.
+    }
+
+    if (preference === "light" || preference === "dark") {
+      document.documentElement.dataset.theme = preference;
+    } else {
+      delete document.documentElement.dataset.theme;
+    }
+    updateThemeButton();
+  }
+
+  function toggleTheme() {
+    const theme = activeTheme() === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = theme;
+
+    let persisted = true;
+    try {
+      localStorage.setItem(STORAGE_KEYS.theme, theme);
+    } catch (error) {
+      persisted = false;
+      console.warn("Could not save theme preference:", error);
+    }
+
+    updateThemeButton();
+    const name = theme === "dark" ? "Dark" : "Light";
+    announce(
+      persisted
+        ? name + " theme enabled."
+        : name + " theme enabled for this session."
+    );
+  }
+
   function loadSearches() {
     const searches = [];
     const seen = new Set();
@@ -238,8 +324,40 @@ document.addEventListener("DOMContentLoaded", () => {
     return listings;
   }
 
-  function commitList(name, nextValue) {
-    if (!writeList(STORAGE_KEYS[name], nextValue)) {
+  function loadRecentListings() {
+    const byUrl = new Map();
+
+    for (const value of readList(STORAGE_KEYS.recentListings)) {
+      if (!value || typeof value !== "object") {
+        continue;
+      }
+
+      const url = listingUrl(value.url);
+      const date = new Date(value.visitedAt);
+      const title =
+        typeof value.title === "string"
+          ? value.title.trim().slice(0, 180)
+          : "";
+      if (!url || !title || Number.isNaN(date.getTime())) {
+        continue;
+      }
+
+      const item = { url, title, visitedAt: date.toISOString() };
+      const existing = byUrl.get(url);
+      if (!existing || item.visitedAt > existing.visitedAt) {
+        byUrl.set(url, item);
+      }
+    }
+
+    const listings = Array.from(byUrl.values())
+      .sort((left, right) => right.visitedAt.localeCompare(left.visitedAt))
+      .slice(0, LIMITS.recentListings);
+    writeList(STORAGE_KEYS.recentListings, listings, true);
+    return listings;
+  }
+
+  function commitList(name, nextValue, quiet = false) {
+    if (!writeList(STORAGE_KEYS[name], nextValue, quiet)) {
       return false;
     }
     state[name] = nextValue;
@@ -318,6 +436,18 @@ document.addEventListener("DOMContentLoaded", () => {
     return item;
   }
 
+  function updateSectionCount(badge, summary, count, label) {
+    if (badge) {
+      badge.textContent = String(count);
+    }
+    if (summary) {
+      summary.setAttribute(
+        "aria-label",
+        label + ", " + count + (count === 1 ? " item" : " items")
+      );
+    }
+  }
+
   function renderSavedLists() {
     if (ui.savedSearches) {
       const fragment = document.createDocumentFragment();
@@ -337,6 +467,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ui.searchesEmpty) {
       ui.searchesEmpty.classList.toggle("is-hidden", state.searches.length > 0);
     }
+    updateSectionCount(
+      ui.searchesCount,
+      ui.searchesSummary,
+      state.searches.length,
+      "Saved searches"
+    );
 
     if (ui.savedListings) {
       const fragment = document.createDocumentFragment();
@@ -356,6 +492,44 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ui.listingsEmpty) {
       ui.listingsEmpty.classList.toggle("is-hidden", state.listings.length > 0);
     }
+    updateSectionCount(
+      ui.listingsCount,
+      ui.listingsSummary,
+      state.listings.length,
+      "Saved listings"
+    );
+
+    if (ui.recentListings) {
+      const fragment = document.createDocumentFragment();
+      state.recentListings.forEach((listing) => {
+        fragment.append(
+          createSavedRow({
+            title: listing.title,
+            meta:
+              "Viewed " + new Date(listing.visitedAt).toLocaleDateString(),
+            open: () => navigateMarketplace(listing.url),
+            remove: () => removeRecentListing(listing.url),
+            removeLabel: "Remove recent listing: " + listing.title,
+          })
+        );
+      });
+      ui.recentListings.replaceChildren(fragment);
+    }
+    if (ui.recentListingsEmpty) {
+      ui.recentListingsEmpty.classList.toggle(
+        "is-hidden",
+        state.recentListings.length > 0
+      );
+    }
+    if (ui.clearRecentListings) {
+      ui.clearRecentListings.disabled = state.recentListings.length === 0;
+    }
+    updateSectionCount(
+      ui.recentListingsCount,
+      ui.recentListingsSummary,
+      state.recentListings.length,
+      "Recent listings"
+    );
   }
 
   function runSearch(value) {
@@ -441,6 +615,64 @@ document.addEventListener("DOMContentLoaded", () => {
       restoreFocus(ui.savedListings, index);
       updateSaveListingButton(currentUrl());
       announce("Saved listing removed.");
+    }
+  }
+
+  function recordRecentListing(pageUrl, visitedAt) {
+    const url = listingUrl(pageUrl);
+    const title = state.recentTitle.trim().slice(0, 180);
+    const visitDate = new Date(visitedAt);
+    if (
+      !url ||
+      !title ||
+      state.loadFailed ||
+      state.successfullyLoadedUrl !== pageUrl ||
+      state.successfulVisitAt !== visitedAt ||
+      state.recentTitleUrl !== pageUrl ||
+      Number.isNaN(visitDate.getTime())
+    ) {
+      return;
+    }
+
+    const item = {
+      url,
+      title,
+      visitedAt: visitDate.toISOString(),
+    };
+    const next = [
+      item,
+      ...state.recentListings.filter((listing) => listing.url !== url),
+    ].slice(0, LIMITS.recentListings);
+    const current = state.recentListings[0];
+    if (
+      current &&
+      current.url === item.url &&
+      current.title === item.title &&
+      current.visitedAt === item.visitedAt
+    ) {
+      return;
+    }
+    commitList("recentListings", next, true);
+  }
+
+  function removeRecentListing(url) {
+    const index = state.recentListings.findIndex((item) => item.url === url);
+    const next = state.recentListings.filter((item) => item.url !== url);
+    if (commitList("recentListings", next)) {
+      restoreFocus(ui.recentListings, index);
+      announce("Recent listing removed.");
+    }
+  }
+
+  function clearRecentListings() {
+    if (state.recentListings.length === 0) {
+      return;
+    }
+    if (commitList("recentListings", [])) {
+      if (ui.recentListingsSummary) {
+        ui.recentListingsSummary.focus();
+      }
+      announce("Recent listing history cleared.");
     }
   }
 
@@ -538,6 +770,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function updateCopyButton(value) {
+    if (!ui.copyUrl) {
+      return;
+    }
+
+    const cleanListingUrl = listingUrl(value);
+    const canCopy = Boolean(ui.webview) && isFacebookHttpsUrl(value);
+    const label = cleanListingUrl
+      ? "Copy clean listing link"
+      : "Copy current URL";
+    ui.copyUrl.disabled = !canCopy;
+    ui.copyUrl.setAttribute("aria-label", label);
+    ui.copyUrl.title = label;
+  }
+
   function syncPage(url = currentUrl(), title = "") {
     const previousUrl = ui.currentUrl ? ui.currentUrl.value : "";
     const sameListing =
@@ -565,10 +812,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.currentUrl.value = url;
       ui.currentUrl.title = url;
     }
-    if (ui.copyUrl) {
-      ui.copyUrl.disabled = !ui.webview || !isFacebookHttpsUrl(url);
-    }
-
+    updateCopyButton(url);
     updateActiveRoute(url);
     updateSaveListingButton(url);
     window.setTimeout(updateHistoryButtons, 0);
@@ -597,6 +841,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function showLoadError(message, url = "") {
     state.loadFailed = true;
     state.failedUrl = url || state.failedUrl;
+    resetSuccessfulLoad();
     if (ui.errorMessage) {
       ui.errorMessage.textContent = message;
     }
@@ -604,6 +849,34 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.errorBanner.classList.remove("is-hidden");
     }
     setLoading(false);
+  }
+
+  function resetSuccessfulLoad() {
+    state.recentTitle = "";
+    state.recentTitleUrl = "";
+    state.successfullyLoadedUrl = "";
+    state.successfulVisitAt = "";
+  }
+
+  function markSuccessfulLoad() {
+    if (state.loadFailed) {
+      return;
+    }
+
+    const pageUrl = currentUrl();
+    if (!pageUrl) {
+      return;
+    }
+    if (
+      state.successfullyLoadedUrl !== pageUrl ||
+      !state.successfulVisitAt
+    ) {
+      state.successfullyLoadedUrl = pageUrl;
+      state.successfulVisitAt = new Date().toISOString();
+    }
+
+    syncPage(pageUrl, currentTitle());
+    recordRecentListing(pageUrl, state.successfulVisitAt);
   }
 
   function isAborted(error) {
@@ -723,6 +996,13 @@ document.addEventListener("DOMContentLoaded", () => {
   listen(ui.searchInput, "input", updateSearchButton);
   listen(ui.saveSearch, "click", saveSearch);
   listen(ui.saveListing, "click", saveListing);
+  listen(ui.clearRecentListings, "click", clearRecentListings);
+  listen(ui.theme, "click", toggleTheme);
+  listen(systemDarkTheme, "change", () => {
+    if (!document.documentElement.dataset.theme) {
+      updateThemeButton();
+    }
+  });
   listen(ui.reload, "click", reloadPage);
   listen(ui.retry, "click", retryPage);
   listen(ui.back, "click", () => {
@@ -744,7 +1024,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
   listen(ui.copyUrl, "click", async () => {
-    const url = currentUrl();
+    const pageUrl = currentUrl();
+    const cleanListingUrl = listingUrl(pageUrl);
+    const url = copyTargetUrl(pageUrl);
     if (
       !isFacebookHttpsUrl(url) ||
       !window.electronAPI ||
@@ -755,7 +1037,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     try {
       await window.electronAPI.copyUrl(url);
-      announce("Link copied.");
+      announce(
+        cleanListingUrl ? "Clean listing link copied." : "Link copied."
+      );
     } catch (error) {
       console.error("Could not copy the Marketplace URL:", error);
       announce("The link could not be copied.");
@@ -764,21 +1048,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (ui.webview) {
     listen(ui.webview, "did-start-loading", () => {
+      resetSuccessfulLoad();
       clearLoadError();
       setLoading(true);
     });
     listen(ui.webview, "did-stop-loading", () => {
       setLoading(false);
-      syncPage(currentUrl(), currentTitle());
+      markSuccessfulLoad();
     });
     listen(ui.webview, "did-navigate", (event) => {
+      resetSuccessfulLoad();
       syncPage(event.url || currentUrl());
     });
     listen(ui.webview, "did-navigate-in-page", (event) => {
+      resetSuccessfulLoad();
       syncPage(event.url || currentUrl());
     });
     listen(ui.webview, "page-title-updated", (event) => {
-      syncPage(currentUrl(), event.title || "");
+      const pageUrl = currentUrl();
+      const title = (event.title || "").trim();
+      syncPage(pageUrl, title);
+      state.recentTitle = title;
+      state.recentTitleUrl = title ? pageUrl : "";
+      if (state.successfullyLoadedUrl === pageUrl) {
+        recordRecentListing(pageUrl, state.successfulVisitAt);
+      }
     });
     listen(ui.webview, "dom-ready", () => {
       syncPage(currentUrl(), currentTitle());
@@ -792,7 +1086,7 @@ document.addEventListener("DOMContentLoaded", () => {
       state.failedUrl = "";
       clearLoadError();
       setLoading(false);
-      syncPage(currentUrl(), currentTitle());
+      markSuccessfulLoad();
     });
     listen(ui.webview, "did-fail-load", (event) => {
       if (event.errorCode === -3) {
@@ -825,8 +1119,10 @@ document.addEventListener("DOMContentLoaded", () => {
     showLoadError("The Marketplace browser could not be initialized.");
   }
 
+  initializeTheme();
   state.searches = loadSearches();
   state.listings = loadListings();
+  state.recentListings = loadRecentListings();
   renderSavedLists();
   let collapsed = false;
   try {
