@@ -1,6 +1,6 @@
 {
   "name": "fb-market",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Standalone app to browse Facebook Marketplace with added functionality",
   "main": "main.js",
   "scripts": {
